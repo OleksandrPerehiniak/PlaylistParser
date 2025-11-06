@@ -1,11 +1,15 @@
-using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.DependencyInjection;
+using PlaylistParser.Services.Abstractions;
+using PlaylistParser.Services.AlbumsParsers;
+using PlaylistParser.Services.HtmlLoaders;
+using PlaylistParser.Services.PlaylistsParsers;
 using PlaylistParser.ViewModels;
 using PlaylistParser.Views;
+using System.Linq;
 
 namespace PlaylistParser
 {
@@ -18,6 +22,16 @@ namespace PlaylistParser
 
         public override void OnFrameworkInitializationCompleted()
         {
+            var collection = new ServiceCollection();
+
+            collection.AddSingleton<MainWindowViewModel>();
+            collection.AddSingleton<IHtmlLoader, HtmlLoader>();
+
+            collection.AddScoped<IMusicListParser, PlaylistsParser>();
+            collection.AddScoped<IMusicListParser, AlbumsParser>();
+
+            var serviceProvider = collection.BuildServiceProvider();
+
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
@@ -25,7 +39,7 @@ namespace PlaylistParser
                 DisableAvaloniaDataAnnotationValidation();
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(),
+                    DataContext = serviceProvider.GetRequiredService<MainWindowViewModel>()
                 };
             }
 

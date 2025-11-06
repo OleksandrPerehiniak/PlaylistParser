@@ -18,5 +18,6 @@ namespace PlaylistParser
                 .UsePlatformDetect()
                 .WithInterFont()
                 .LogToTrace();
+                
     }
 }

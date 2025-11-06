@@ -3,43 +3,55 @@
         xmlns:vm="clr-namespace:PlaylistParser.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="PlaylistParser.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="PlaylistParser">
+        Title="PlaylistParser"
+       >
 
-        <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
 
-    <Grid RowDefinitions="Auto, Auto, *, Auto">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="10">
-            <TextBox Text="{Binding UrlInput}" Width="500" Watermark="Enter Amazon Music Playlist/Album URL"/>
-            <Button Command="{Binding ParseUrlCommand}">Parse URL</Button>
-        </StackPanel>
+	<Grid RowDefinitions="Auto, Auto, Auto, *, Auto">
+		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="10">
+			<TextBox Text="{Binding UrlInput}" Width="500" Watermark="Enter Amazon Music Playlist/Album URL"/>
+			<Button Command="{Binding ParseUrlCommand}">Parse URL</Button>
+		</StackPanel>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,10" DataContext="{Binding ParsedPlaylist}">
-            <Image Source="{Binding AvatarUrl}" Width="64" Height="64" Margin="0,0,10,0"/>
-            <StackPanel Orientation="Vertical">
-                <TextBlock FontWeight="Bold" FontSize="16" Text="{Binding Name}"/>
-                <TextBlock FontStyle="Italic" Text="{Binding Description}"/>
-            </StackPanel>
-        </StackPanel>
+		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,10" DataContext="{Binding ParsedPlaylist}">
 
-        <ListBox Grid.Row="2" Margin="10" ItemsSource="{Binding ParsedPlaylist.Songs}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid ColumnDefinitions="2*, 2*, 2*, *">
-                        <TextBlock Grid.Column="0" Text="{Binding SongName}" ToolTip.Tip="Song Name" />
-                        <TextBlock Grid.Column="1" Text="{Binding ArtistName}" ToolTip.Tip="Artist Name" />
-                        <TextBlock Grid.Column="2" Text="{Binding AlbumName}" ToolTip.Tip="Album Name" />
-                        <TextBlock Grid.Column="3" Text="{Binding Duration}" ToolTip.Tip="Duration" HorizontalAlignment="Right" />
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+			<Image asyncImageLoader:ImageLoader.Source="{Binding AvatarUrl}" Width="64" Height="64" Margin="0,0,10,0"/>
 
-        <TextBlock Grid.Row="3" Margin="10" Text="{Binding StatusMessage}" Foreground="Gray"/>
-    </Grid>
+			<StackPanel Orientation="Vertical">
+				<TextBlock FontWeight="Bold" FontSize="16" Text="{Binding Name}"/>
+				<TextBlock FontStyle="Italic" Text="{Binding Description}"/>
+			</StackPanel>
+		</StackPanel>
+
+		<Grid Grid.Row="2" ColumnDefinitions="2*, 2*, 2*, *" Margin="10,0,10,0">
+			<TextBlock Grid.Column="0" Text="Title" FontWeight="Bold" />
+			<TextBlock Grid.Column="1" Text="Artist" FontWeight="Bold" />
+			<TextBlock Grid.Column="2" Text="Album" FontWeight="Bold" />
+			<TextBlock Grid.Column="3" Text="Duration" FontWeight="Bold" HorizontalAlignment="Right" />
+		</Grid>
+
+		<ListBox Grid.Row="3" Margin="10" ItemsSource="{Binding ParsedPlaylist.Songs}">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					
+					<Grid ColumnDefinitions="2*, 2*, 2*, *">
+						<TextBlock Grid.Column="0" Text="{Binding SongName}" ToolTip.Tip="Song Name" />
+						<TextBlock Grid.Column="1" Text="{Binding ArtistName}" ToolTip.Tip="Artist Name" />
+						<TextBlock Grid.Column="2" Text="{Binding AlbumName}" ToolTip.Tip="Album Name" />
+						<TextBlock Grid.Column="3" Text="{Binding Duration}" ToolTip.Tip="Duration" HorizontalAlignment="Right" />
+					</Grid>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+		</ListBox>
+
+		<TextBlock Grid.Row="4" Margin="10" Text="{Binding StatusMessage}" Foreground="Gray"/>
+	</Grid>
 </Window>
