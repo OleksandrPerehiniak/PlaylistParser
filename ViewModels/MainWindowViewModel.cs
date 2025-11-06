@@ -1,134 +1,78 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System;
 using HtmlAgilityPack;
 using PlaylistParser.Models;
-
-using Microsoft.Playwright;
-using System.IO;
+using PlaylistParser.Services.Abstractions;
+using System;
 using System.Collections.Generic;
-using System.Xml.Linq;
-
-
-
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace PlaylistParser.ViewModels
 {
-    public partial class MainWindowViewModel : ViewModelBase
+    public partial class MainWindowViewModel(IEnumerable<IMusicListParser> musicListParsers, IHtmlLoader htmlLoader) : ViewModelBase
     {
+        private const string DefaultUrl = "https://music.amazon.com/playlists/B08BWK8W15";
+        private const string InitialStatusMessage = "Enter URL and Click Parse";
+        private const string ParsingStatusMessage = "Parsing...";
+        private const string DetailHeaderXPath = "/html/body/div/div[3]/div/music-app/div/div/div/div/div[2]/music-detail-header";
+        private const string LabelAttribute = "label";
+        private const string DefaultLabel = "Unknown Playlist";
+        private const string NoParserFoundErrorMessage = "❌ Error: No suitable parser found for this URL.";
+        private const string ParsingFailedErrorMessage = "❌ Error: Parsing failed.";
+        private const string SuccessMessageFormat = "✅ Successfully parsed: {0} with {1} songs.";
+        private const string FetchErrorMessage = "❌ Error: Could not fetch URL. Check the address.";
+        private const string GenericErrorMessageFormat = "⚠️ An error occurred during parsing: {0}";
+
         [ObservableProperty]
-        private string urlInput = "https://music.amazon.com/playlists/B08BWK8W15";
+        private string urlInput = DefaultUrl;
 
         [ObservableProperty]
         private Playlist parsedPlaylist;
 
         [ObservableProperty]
-        private string statusMessage = "Enter URL and Click Parse";
+        private string statusMessage = InitialStatusMessage;
 
         [RelayCommand]
         private async Task ParseUrl()
         {
-            StatusMessage = "Parsing...";
+            StatusMessage = ParsingStatusMessage;
             ParsedPlaylist = null;
-
 
             try
             {
-                
-                var html = await FetchRenderedHtmlAsync(UrlInput);
+                var html = await htmlLoader.FetchRenderedHtmlAsync(UrlInput);
 
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html);
-                var playlists = new List<Playlist>();
 
-                //File.WriteAllText("rendered.html", html); // inspect this file
-                //var header = doc.DocumentNode.SelectSingleNode("//music-detail-header");
+                var node = doc.DocumentNode.SelectSingleNode(DetailHeaderXPath);
+                var label = node.GetAttributeValue(LabelAttribute, DefaultLabel);
 
-                if (html.Contains("music-detail-header") == true) {
-                    StatusMessage = true.ToString();
-                }
-                
-                
-                HtmlNodeCollection nodes = doc.DocumentNode.SelectNodes("//music-detail-header");
-                foreach (var node in nodes) 
+                var playlistParser = musicListParsers.FirstOrDefault(x => x.ParserType == label);
+                if (playlistParser is null)
                 {
-                
-                    var test = node.GetAttributeValue("headline", "Unknown Playlist") ?? "Unknown Playlist";
+                    StatusMessage = NoParserFoundErrorMessage;
+                    return;
                 }
-
-                //foreach(var node in nodes) 
-                //{
-                //    var playlist = new Playlist
-                //    {
-                //        Name = node.GetAttributeValue("headline", "Unknown Playlist") ?? "Unknown Playlist",
-
-                //        AvatarUrl = node.GetAttributeValue("image-src", "default_avatar.png") ?? "default_avatar.png",
-
-                //        Description = node.GetAttributeValue("primary-text", "No Description Found") ?? "No Description Found",
-                //    };
-
-
-                //}
-
-
-                //// Parse song list
-                //var songNodes = doc.DocumentNode.SelectNodes("//div[@data-test='track-row']");
-                //if (songNodes != null)
-                //{
-                //    foreach (var node in songNodes)
-                //    {
-                //        var songName = node.SelectSingleNode(".//span[@data-test='track-title']")?.InnerText.Trim();
-                //        var artistName = node.SelectSingleNode(".//a[@data-test='track-artist']")?.InnerText.Trim();
-                //        var albumName = node.SelectSingleNode(".//a[@data-test='track-album']")?.InnerText.Trim();
-                //        var duration = node.SelectSingleNode(".//span[@data-test='track-duration']")?.InnerText.Trim();
-
-                //        if (!string.IsNullOrEmpty(songName))
-                //        {
-                //            playlist.Songs.Add(new Song
-                //            {
-                //                SongName = songName,
-                //                ArtistName = artistName ?? "N/A",
-                //                AlbumName = albumName ?? "N/A",
-                //                Duration = duration ?? "N/A"
-                //            });
-                //        }
-                //    }
-                //}
-
-                foreach (var playlist in playlists) 
-                { 
-                    ParsedPlaylist = playlist;
-                    StatusMessage = $"✅ Successfully parsed: {playlist.Name} with {playlist.Songs.Count} songs.";
-                
+                var playlist = playlistParser?.Parse(doc, node);
+                if (playlist is null)
+                {
+                    StatusMessage = ParsingFailedErrorMessage;
+                    return;
                 }
+                ParsedPlaylist = playlist;
+                StatusMessage = string.Format(SuccessMessageFormat, playlist.Name, playlist.Songs.Count);
             }
             catch (HttpRequestException)
             {
-                StatusMessage = "❌ Error: Could not fetch URL. Check the address.";
+                StatusMessage = FetchErrorMessage;
             }
             catch (Exception ex)
             {
-                StatusMessage = $"⚠️ An error occurred during parsing: {ex.Message}";
+                StatusMessage = string.Format(GenericErrorMessageFormat, ex.Message);
             }
-        }
-
-        private async Task<string> FetchRenderedHtmlAsync(string url)
-        {
-            
-
-            using var playwright = await Playwright.CreateAsync(); 
-            await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = false, }); 
-            var context = await browser.NewContextAsync(); 
-            var page = await context.NewPageAsync(); 
-            await page.GotoAsync("https://music.amazon.com/playlists/B01M11SBC8");
-
-            await Task.Delay(5000);
-            var html = await page.ContentAsync();
-
-            return html;
-
         }
     }
 }
